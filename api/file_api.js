@@ -12,20 +12,6 @@ import { storage } from "../filebase_con.js";
 
 export const router = express.Router();
 
-// class FileMiddleware {
-//     constructor() {
-//         this.filename = "";
-//         this.diskLoader = multer({
-//             storage: multer.memoryStorage(),
-//             limits: {
-//                 fileSize: 67108864, // 64 MByte
-//             },
-//         });
-//     }
-// }
-
-// const fileUpload = new FileMiddleware();
-
 const upload = multer();
 
 router.get("/", (req, res) => {
@@ -45,58 +31,6 @@ router.post("/", upload.single("file"), async (req, res) => {
     }
 });
 
-
-
-// router.post(
-//     "/",
-//     fileUpload.diskLoader.single("file"),
-//     async (req, res) => {
-//         console.log("File " + req.file);
-
-//         try {
-//             // upload รูปภาพลง firebase โดยใช้ parameter ที่ส่งมาใน URL path
-//             const url = await firebaseUpload(req.file);
-//             res.send("Image: " + url);
-//         } catch (error) {
-//             console.error("Error uploading image:", error);
-//             res.status(500).send("Failed to upload image");
-//         }
-
-//     }
-// );
-
-// async function firebaseUpload(file) {
-//     // Upload to firebase storage
-//     const filename = Date.now() + "-" + Math.round(Math.random() * 1000) + ".png";
-//     // Define locations to be saved on storag
-//     const storageRef = ref(storage, "/images/" + filename);
-//     // define file detail
-//     const metaData = { contentType: file.mimetype };
-//     // Start upload
-//     const snapshost = await uploadBytesResumable(
-//         storageRef,
-//         file.buffer,
-//         metaData
-//     );
-//     // Get url image from storage
-//     const url = await getDownloadURL(snapshost.ref);
-
-//     return url;
-// }
-
-// async function firebaseUpload(file) {
-//     const filename = Date.now() + "-" + Math.round(Math.random() * 1000) + ".png";
-//     const storageRef = ref(storage, "/images/" + filename);
-//     const metaData = { contentType: file.mimetype };
-//     const snapshost = await uploadBytesResumable(
-//         storageRef,
-//         file.buffer,
-//         metaData
-//     );
-//     const url = await getDownloadURL(snapshost.ref);
-
-//     return url;
-// }
 
 async function firebaseUpload(file) {
     try {

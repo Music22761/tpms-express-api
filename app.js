@@ -8,7 +8,7 @@ import { router as adminOrganization } from "./api/admin_organization_api.js"
 import { router as course } from "./api/course_api.js"
 import { router as document } from "./api/document_api.js"
 import { router as enrollment } from "./api/enrollment_api.js"
-// import cors from "cors";
+import cors from "cors";
 import { router as file_api } from "./api/file_api.js"
 
 
@@ -17,11 +17,11 @@ export const app = express();
 // app.get('/', (req, res) => {
 //   res.send('Hello World! this is app.js');
 // });
-// app.use(
-//     cors({
-//         origin: "*",
-//     })
-// );
+app.use(
+    cors({
+        origin: "*",
+    })
+);
 
 // app.use(bodyParser.text());
 // app.use(bodyParser.json());
