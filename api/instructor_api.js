@@ -26,6 +26,15 @@ router.get("/id", (req, res) => {
     //   res.send("this is Admin Page")
   });
 
+  router.get("/notAllow", (req, res) => {
+    conn.query(
+      "select * from Instructor where status = 0",
+      (err, result, fields) => {
+        res.json(result);
+      }
+    );
+  });
+
   router.post('/', (req, res) => {
     console.log(req.body);
   
@@ -43,6 +52,15 @@ router.get("/id", (req, res) => {
       res.status(200).send('Data inserted successfully');
     });
   });
+
+  router.delete("/:id", (req, res) => {
+    let id = +req.params.id;
+    conn.query("delete from Instructor where id = ?", [id], (err, result) => {
+      if (err) throw err;
+      res.status(200).json({ affected_row: result.affectedRows });
+    });
+  });
+  
 
   router.put("/edit/:id", async (req, res) => {
     let id = +req.params.id;

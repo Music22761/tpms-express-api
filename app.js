@@ -8,26 +8,24 @@ import { router as adminOrganization } from "./api/admin_organization_api.js"
 import { router as course } from "./api/course_api.js"
 import { router as document } from "./api/document_api.js"
 import { router as enrollment } from "./api/enrollment_api.js"
+import { router as address } from "./api/address.js"
+import { router as login } from "./api/login.js"
 import cors from "cors";
 import { router as file_api } from "./api/file_api.js"
 
 
 export const app = express();
 
-// app.get('/', (req, res) => {
-//   res.send('Hello World! this is app.js');
-// });
 app.use(
     cors({
         origin: "*",
     })
 );
 
-// app.use(bodyParser.text());
-// app.use(bodyParser.json());
 
 app.use(express.json());
 app.use("/", index);
+app.use("/login", login);
 app.use("/admin", admin_api);
 app.use("/adminOrganization", adminOrganization);
 app.use("/instructor", instructor);
@@ -36,5 +34,6 @@ app.use("/course", course);
 app.use("/document", document);
 app.use("/enrollment", enrollment);
 app.use("/file", file_api);
+app.use("/address", address);
 
 // app.listen(3000);

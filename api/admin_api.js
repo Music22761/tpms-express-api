@@ -12,6 +12,13 @@ router.get("/", (req, res) => {
 //   res.send("this is Admin Page")
 });
 
+router.get("/idx", (req, res) => {
+  conn.query("select * from Admin where"+req.query.id, (err, result, fields) => {
+    res.json(result);
+  });
+//   res.send("this is Admin Page")
+});
+
 router.post('/', (req, res) => {
     // รับข้อมูลจาก request body
     // const { email, password, role } = req.body;
