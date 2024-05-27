@@ -1,15 +1,9 @@
-
-
 import express from "express";
 import multer from "multer";
-import mysql from 'mysql'
 import { conn } from '../connectdb.js'
 import path from "path";
 import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
-import { app } from "../filebase_con.js";
 import { storage } from "../filebase_con.js";
-import { send } from "process";
-
 
 export const router = express.Router();
 
@@ -17,7 +11,7 @@ const upload = multer();
 
 router.get("/", (req, res) => {
     res.send("KuyRaiSas")
-})
+});
 
 router.post("/", upload.single("file"), async (req, res) => {
     try {
@@ -45,7 +39,6 @@ router.post("/pdf/", upload.single("file"), async (req, res) => {
     }
 });
 
-
 async function firebaseUpload(file) {
     try {
         // สร้างชื่อไฟล์ที่ไม่ซ้ำกันโดยใช้ timestamp และเลขสุ่ม
@@ -66,9 +59,6 @@ async function firebaseUpload(file) {
         throw error; // ส่งข้อผิดพลาดไปยัง caller ของฟังก์ชัน
     }
 }
-
-
-
 
 async function firebaseUploadPDF(file) {
     try {
@@ -91,41 +81,60 @@ async function firebaseUploadPDF(file) {
     }
 }
 
-router.delete("/pathImage", async (req, res) => {
-    const path = req.query.path
-    console.log("In delete func: "+String(path));
-    // send("URL:")
-    // res.send("Path: "+path)
-    await firebaseDeleteImage(String(path));
+router.delete("/pathImage", (req, res) => {
+    const path = req.query.path;
+    console.log("In delete func: " + String(path));
+
+    // เรียกใช้ฟังก์ชัน firebaseDeleteImage แบบไม่ต้องรอ
+    firebaseDeleteImage(String(path)).catch((error) => {
+        console.error("Error deleting image:", error);
+    });
+
+    res.status(200).send("Image deletion in progress");
 });
 
-router.delete("/pathPDF", async (req, res) => {
+router.delete("/pathPDF", (req, res) => {
     const path = req.query.path;
     console.log("In delete func:  " + path);
 
-    // res.send("Path: "+path)
-    await firebaseDeletePDF(String(path));
+    // เรียกใช้ฟังก์ชัน firebaseDeletePDF แบบไม่ต้องรอ
+    firebaseDeletePDF(String(path)).catch((error) => {
+        console.error("Error deleting PDF:", error);
+    });
+
+    res.status(200).send("PDF deletion in progress");
 });
 
 // ลบรูปภาพใน firebase
 async function firebaseDeleteImage(path) {
-    console.log("In firebase Delete:" + path);
+    try {
+        console.log("In firebase Delete:" + path);
 
-    const storageRef = ref(
-        storage,
-        "/images/" + path.split("/images/")[1].split("?")[0]
-    );
-    const snapshost = await deleteObject(storageRef);
+        const storageRef = ref(
+            storage,
+            "/images/" + path.split("/images/")[1].split("?")[0]
+        );
+        await deleteObject(storageRef);
+        console.log("Image deleted successfully");
+    } catch (error) {
+        console.error("Error deleting image:", error);
+        throw error; // ส่งข้อผิดพลาดไปยัง caller ของฟังก์ชัน
+    }
 }
 
-// ลบรูปภาพใน firebase
+// ลบ PDF ใน firebase
 async function firebaseDeletePDF(path) {
-    console.log("In firebase Delete:" + path);
+    try {
+        console.log("In firebase Delete:" + path);
 
-    const storageRef = ref(
-        storage,
-        "/pdfs/" + path.split("/pdfs/")[1].split("?")[0]
-    );
-    const snapshost = await deleteObject(storageRef);
+        const storageRef = ref(
+            storage,
+            "/pdfs/" + path.split("/pdfs/")[1].split("?")[0]
+        );
+        await deleteObject(storageRef);
+        console.log("PDF deleted successfully");
+    } catch (error) {
+        console.error("Error deleting PDF:", error);
+        throw error; // ส่งข้อผิดพลาดไปยัง caller ของฟังก์ชัน
+    }
 }
-

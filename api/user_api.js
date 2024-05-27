@@ -5,129 +5,86 @@ import util from "util";
 
 export const router = express.Router();
 
-router.get("/", (req, res) => {
-  conn.query("select * from User", (err, result, fields) => {
+// Utility function to promisify conn.query
+const queryAsync = util.promisify(conn.query).bind(conn);
+
+router.get("/", async (req, res) => {
+  try {
+    const result = await queryAsync("SELECT * FROM User");
     res.json(result);
-  });
-  //   res.send("this is Admin Page")
-});
-
-router.get("/idx", (req, res) => {
-  if (req.query.id) {
-    conn.query(
-      "select * from User where id = " + req.query.id,
-      (err, result, fields) => {
-        res.json(result);
-      }
-    );
-  } else {
-    res.send("call get in Users with Query Param " + req.query.id);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching users");
   }
-  //   res.send("this is Admin Page")
 });
 
-
-
-// router.get("/code/:search", (req, res) => {
-//   const search = `%${req.params.search}%`
-//   console.log(search)
-//   conn.query(
-//     "select * from User_En where code like ? or fname like ? or lname like ? or nickname like ?",
-//     // "select * from User_En where code like ?",
-//     [search, search, search, search],
-//     (err, result) => {
-//       if(err) {
-//         res.json(err)
-//       }else {
-//         console.log("OK");
-//         res.json(result);
-//       }
-//     }
-//   );
-// });
-
-router.post('/', (req, res) => {
-  console.log(req.body);
-
-  let user = req.body;
-
-  const sql = `INSERT INTO User SET ?`;
-  conn.query(sql,user, (err, result) => {
-    if (err) {
-      console.error('Error inserting data: ', err);
-      res.status(500).send('Error inserting data' + user);
-      return;
+router.get("/idx", async (req, res) => {
+  try {
+    if (req.query.id) {
+      const sql = "SELECT * FROM User WHERE id = ?";
+      const result = await queryAsync(mysql.format(sql, [req.query.id]));
+      res.json(result);
+    } else {
+      res.send("Call GET in Users with Query Param " + req.query.id);
     }
-
-    console.log('Data inserted successfully');
-    res.status(200).send('Data inserted successfully');
-  });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching user by id");
+  }
+  
 });
 
-// router.post('/', (req, res) => {
-//   console.log(req.body);
-
-//   let uesrData = req.body;
-
-//   // สร้างคำสั่ง SQL เพื่อเพิ่มข้อมูลผู้ใช้
-//   let sql = "INSERT INTO `User_En` (`code`, `fname`, `lname`, `type`, `nickname`, `birthday`) VALUES (?,?,?,?,?,?)";
-//   sql = mysql.format(sql, [
-//     uesrData.code,
-//     uesrData.fname,
-//     uesrData.lname,
-//     uesrData.type,
-//     uesrData.nickname,
-//     uesrData.birthday,
-//   ]);
-
-//   // Execute the SQL statement
-//   conn.query(sql, (err, result) => {
-//     if (err) {
-//       console.error('Error inserting data: ', err);
-//       res.status(500).send('Error inserting data' + uesrData);
-//       return;
-//     }
-
-//     console.log('Data inserted successfully');
-//     res.status(200).send('Data inserted successfully');
-//   });
-// });
+router.post("/", async (req, res) => {
+  try {
+    const user = req.body;
+    const sql = "INSERT INTO User SET ?";
+    const result = await queryAsync(sql, user);
+    console.log("Data inserted successfully");
+    res.status(200).send("Data inserted successfully");
+  } catch (err) {
+    console.error("Error inserting data: ", err);
+    res.status(500).send("Error inserting data: " + JSON.stringify(req.body));
+  }
+});
 
 router.put("/edit/:id", async (req, res) => {
-  let id = +req.params.id;
-  let user = req.body;
-  let userOriginal;
-  const queryAsync = util.promisify(conn.query).bind(conn);
+  try {
+    const id = +req.params.id;
+    const user = req.body;
 
-  let sql = mysql.format("select * from User where id = ?", [id]);
+    let sql = mysql.format("SELECT * FROM User WHERE id = ?", [id]);
+    const result = await queryAsync(sql);
 
-  let result = await queryAsync(sql);
-  const rawData = JSON.parse(JSON.stringify(result));
-  console.log(rawData);
-  userOriginal = rawData[0];
-  console.log(userOriginal);
+    if (result.length === 0) {
+      return res.status(404).send("User not found");
+    }
 
-  let updateUser = { ...userOriginal, ...user };
-  console.log(user);
-  console.log(updateUser);
+    const userOriginal = result[0];
+    const updateUser = { ...userOriginal, ...user };
 
-  sql =
-    "update  `User` set `email`=?, `password`=?, `name_th`=?, `name_en`=?, `account_name`=?, `profile_picture`=?, `qr_code`=?, `role`=? where `id`=?";
-  sql = mysql.format(sql, [
-    updateUser.email,
-    updateUser.password,
-    updateUser.name_th,
-    updateUser.name_en,
-    updateUser.account_name,
-    updateUser.profile_picture,
-    updateUser.qr_code,
-    updateUser.role,
-    id,
-  ]);
-  conn.query(sql, (err, result) => {
-    if (err) throw err;
-    res.status(201).json({ affected_row: result.affectedRows });
-  });
+    sql = `
+      UPDATE User 
+      SET email = ?, password = ?, name_th = ?, name_en = ?, account_name = ?, profile_picture = ?, qr_code = ?, role = ? 
+      WHERE id = ?
+    `;
+    const formattedSql = mysql.format(sql, [
+      updateUser.email,
+      updateUser.password,
+      updateUser.name_th,
+      updateUser.name_en,
+      updateUser.account_name,
+      updateUser.profile_picture,
+      updateUser.qr_code,
+      updateUser.role,
+      id,
+    ]);
+
+    const updateResult = await queryAsync(formattedSql);
+    res.status(200).json({ affected_row: updateResult.affectedRows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error updating user");
+  }
 });
 
 

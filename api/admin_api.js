@@ -1,47 +1,47 @@
 import express from "express";
 import { conn } from "../connectdb.js";
-import mysql from "mysql";
 import util from "util";
 
 export const router = express.Router();
 
-router.get("/", (req, res) => {
-  conn.query("select * from Admin", (err, result, fields) => {
+// Promisify conn.query
+const queryAsync = util.promisify(conn.query).bind(conn);
+
+router.get("/", async (req, res) => {
+  try {
+    const result = await queryAsync("SELECT * FROM Admin");
     res.json(result);
-  });
-//   res.send("this is Admin Page")
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching admin data");
+  }
 });
 
-router.get("/idx", (req, res) => {
-  conn.query("select * from Admin where"+req.query.id, (err, result, fields) => {
-    res.json(result);
-  });
-//   res.send("this is Admin Page")
+router.get("/idx", async (req, res) => {
+  try {
+    if (req.query.id) {
+      const sql = "SELECT * FROM Admin WHERE id = ?";
+      const result = await queryAsync(mysql.format(sql, [req.query.id]));
+      res.json(result);
+    } else {
+      res.status(400).send("Query parameter 'id' is required");
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching admin data by id");
+  }
 });
 
-router.post('/', (req, res) => {
-    // รับข้อมูลจาก request body
-    // const { email, password, role } = req.body;
-    // res.send(email + " " + password + " " + role)
-  
-    console.log(req.body);
-
+router.post('/', async (req, res) => {
+  try {
     const adminData = req.body;
+    const sql = "INSERT INTO Admin SET ?";
+    const result = await queryAsync(sql, adminData);
+    console.log('Data inserted successfully');
+    res.status(200).send('Data inserted successfully');
+  } catch (err) {
+    console.error('Error inserting data: ', err);
+    res.status(500).send('Error inserting data: ' + JSON.stringify(adminData));
+  }
+});
 
-
-    // สร้างคำสั่ง SQL เพื่อเพิ่มข้อมูลผู้ใช้
-    const sql = `INSERT INTO Admin SET ?`;
-
-  
-    // Execute the SQL statement
-    conn.query(sql, adminData, (err, result) => {
-      if (err) {
-        console.error('Error inserting data: ', err);
-        res.status(500).send('Error inserting data' + adminData);
-        return;
-      }
-  
-      console.log('Data inserted successfully');
-      res.status(200).send('Data inserted successfully');
-    });
-  });

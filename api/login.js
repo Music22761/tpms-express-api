@@ -68,5 +68,4 @@ LEFT JOIN
 `, (err, result, fields) => {
         res.json(result);
     });
-    //   res.send("this is Admin Page")
 });

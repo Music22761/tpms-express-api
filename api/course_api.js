@@ -5,78 +5,83 @@ import util from "util";
 
 export const router = express.Router();
 
-router.get("/", (req, res) => {
-    conn.query("select * from Course", (err, result, fields) => {
-        res.json(result);
-    });
-});
+// Promisify conn.query
+const queryAsync = util.promisify(conn.query).bind(conn);
 
-router.get("/id", (req, res) => {
-    if (req.query.id) {
-        conn.query(
-            "select * from Course where id = " + req.query.id,
-            (err, result, fields) => {
-                res.json(result);
-            }
-        );
-    } else {
-        res.send("call get in Users with Query Param " + req.query.id);
+router.get("/", async (req, res) => {
+    try {
+        const result = await queryAsync("SELECT * FROM Course");
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fetching courses");
     }
 });
 
-router.post('/', (req, res) => {
-    console.log(req.body);
-
-    let CourseData = req.body;
-
-    const sql = `INSERT INTO Course SET ?`;
-    conn.query(sql, CourseData, (err, result) => {
-        if (err) {
-            console.error('Error inserting data: ', err);
-            res.status(500).send('Error inserting data' + CourseData);
-            return;
+router.get("/id", async (req, res) => {
+    try {
+        if (req.query.id) {
+            const sql = mysql.format("SELECT * FROM Course WHERE id = ?", [req.query.id]);
+            const result = await queryAsync(sql);
+            res.json(result);
+        } else {
+            res.status(400).send("Query parameter 'id' is required");
         }
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error fetching course by id");
+    }
+});
 
+router.post('/', async (req, res) => {
+    try {
+        console.log(req.body);
+        const courseData = req.body;
+        const sql = "INSERT INTO Course SET ?";
+        const result = await queryAsync(sql, courseData);
         console.log('Data inserted successfully');
         res.status(200).send('Data inserted successfully');
-    });
+    } catch (err) {
+        console.error('Error inserting data: ', err);
+        res.status(500).send('Error inserting data: ' + JSON.stringify(req.body));
+    }
 });
 
 router.put("/edit/:id", async (req, res) => {
-    let id = +req.params.id;
-    let course = req.body;
-    let courseOriginal;
-    const queryAsync = util.promisify(conn.query).bind(conn);
+    try {
+        const id = +req.params.id;
+        const course = req.body;
+        const sqlSelect = mysql.format("SELECT * FROM Course WHERE id = ?", [id]);
 
-    let sql = mysql.format("select * from Course where id = ?", [id]);
+        const resultSelect = await queryAsync(sqlSelect);
+        if (resultSelect.length === 0) {
+            return res.status(404).send("Course not found");
+        }
 
-    let result = await queryAsync(sql);
-    const rawData = JSON.parse(JSON.stringify(result));
-    console.log(rawData);
-    courseOriginal = rawData[0];
-    console.log(courseOriginal);
+        const courseOriginal = resultSelect[0];
+        const updateCourse = { ...courseOriginal, ...course };
 
-    let updateCourse = { ...courseOriginal, ...course };
-    console.log(updateCourse);
-    console.log(updateCourse);
+        const sqlUpdate = mysql.format(
+            "UPDATE Course SET name = ?, description = ?, address = ?, capacity = ?, start_date = ?, end_date = ?, type = ?, instructor = ?, organization = ?, status = ? WHERE id = ?",
+            [
+                updateCourse.name,
+                updateCourse.description,
+                updateCourse.address,
+                updateCourse.capacity,
+                updateCourse.start_date,
+                updateCourse.end_date,
+                updateCourse.type,
+                updateCourse.instructor,
+                updateCourse.organization,
+                updateCourse.status,
+                id,
+            ]
+        );
 
-    sql =
-        "update  `Course` set `name`=?, `description`=?, `address`=?, `capacity`=?, `start_date`=?, `end_date`=?, `type`=?, `instructor`=?, `organization`=?, `status`=? where `id`=?";
-    sql = mysql.format(sql, [
-        updateCourse.name,
-        updateCourse.description,
-        updateCourse.address,
-        updateCourse.capacity,
-        updateCourse.start_date,
-        updateCourse.end_date,
-        updateCourse.type,
-        updateCourse.instructor,
-        updateCourse.organization,
-        updateCourse.status,
-        id,
-    ]);
-    conn.query(sql, (err, result) => {
-        if (err) throw err;
-        res.status(201).json({ affected_row: result.affectedRows });
-    });
+        const resultUpdate = await queryAsync(sqlUpdate);
+        res.status(200).json({ affected_row: resultUpdate.affectedRows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error updating course");
+    }
 });
